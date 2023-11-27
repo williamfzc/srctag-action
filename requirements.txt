@@ -1,0 +1,3 @@
+srctag[embedding]==0.2.0
+loguru
+chromadb==0.4.14

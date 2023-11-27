@@ -1,5 +1,23 @@
 name: 'srctag'
 description: 'Diff source files with real-world stories.'
+inputs:
+  tags:
+    description: 'Tags for classify'
+    required: true
+    default: './srctag.txt'
+  before_sha:
+    description: 'before sha'
+    required: true
+    default: ${{ github.event.pull_request.base.sha }}
+  after_sha:
+    description: 'after sha'
+    required: true
+    default: ${{ github.event.pull_request.head.sha }}"
+
 runs:
   using: 'docker'
   image: 'Dockerfile'
+  args:
+    - ${{ inputs.tags }}
+    - ${{ inputs.before_sha }}
+    - ${{ inputs.after_sha }}
