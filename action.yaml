@@ -1,5 +1,9 @@
 name: 'srctag'
 description: 'Diff source files with real-world stories.'
+branding:
+  color: 'blue'
+  icon: 'tag'
+
 inputs:
   tags:
     description: 'Tags for classify'
