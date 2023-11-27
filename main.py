@@ -17,6 +17,8 @@ def main():
     input_after_sha = args[2]
 
     if not (input_before_sha and input_after_sha):
+        # ok
+
         logger.warning("It seems not a pull request. Bye~")
         return
     logger.info(f"diff between {input_before_sha} and {input_after_sha}")
