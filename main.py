@@ -18,7 +18,6 @@ def main():
 
     if not (input_before_sha and input_after_sha):
         # ok
-
         logger.warning("It seems not a pull request. Bye~")
         return
     logger.info(f"diff between {input_before_sha} and {input_after_sha}")
@@ -31,9 +30,8 @@ def main():
     logger.info(f"tags: {tags}")
 
     # diff
-    subprocess.check_call(["ls"])
+    subprocess.check_call(["git", "config", "--global", "--add", "safe.directory", "/github/workspace"])
     subprocess.check_call(["git", "status"])
-    subprocess.check_call(["git", "config", "--global", "--add", "safe.directory", "."])
     git_diff_command = ['git', 'diff', '--name-only', input_before_sha, input_after_sha]
     output = subprocess.check_output(git_diff_command).decode().strip()
     diff_files = output.split('\n')
