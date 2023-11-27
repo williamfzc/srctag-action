@@ -17,6 +17,8 @@ def main():
     input_before_sha = args[1]
     input_after_sha = args[2]
 
+    # todo test
+
     if not (input_before_sha and input_after_sha):
         logger.warning("It seems not a pull request. Bye~")
         return
