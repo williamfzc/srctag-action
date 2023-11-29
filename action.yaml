@@ -17,6 +17,18 @@ inputs:
     description: 'after sha'
     required: true
     default: ${{ github.event.pull_request.head.sha }}
+  repo_token:
+    description: "A GitHub token for API access. Defaults to {{ github.token }}."
+    default: "${{ github.token }}"
+    required: false
+  issue_number:
+    description: "issue number"
+    default: "${{ github.event.number }}"
+    required: false
+  n_result:
+    description: "how many tags can be tagged on a single file"
+    default: "3"
+    required: false
 
 runs:
   using: 'docker'
@@ -25,3 +37,6 @@ runs:
     - ${{ inputs.tags }}
     - ${{ inputs.before_sha }}
     - ${{ inputs.after_sha }}
+    - ${{ inputs.repo_token }}
+    - ${{ inputs.issue_number }}
+    - ${{ inputs.n_result }}

@@ -6,6 +6,9 @@ on:
     branches:
       - '*'
 
+permissions:
+  pull-requests: write
+
 jobs:
   smoke_test:
     runs-on: ubuntu-latest

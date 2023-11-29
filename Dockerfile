@@ -8,6 +8,8 @@ COPY ./requirements.txt .
 
 RUN pip install -r ./requirements.txt
 
+RUN srctag prepare
+
 COPY . .
 
 # user's code here
