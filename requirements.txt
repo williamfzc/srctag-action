@@ -1,4 +1,4 @@
-srctag[embedding]==0.3.0
+srctag[embedding]==0.3.1
 loguru
 chromadb==0.4.14
 PyGithub==2.1.1

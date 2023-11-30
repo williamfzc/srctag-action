@@ -49,13 +49,30 @@ def main():
 
     # calc impacts
     comment_content = "# srctag report\n\n"
+
+    # detail table
     table = []
     headers = ["File", "Related Topics"]
-
+    tag_scores = dict()
     for each in diff_files:
-        selected_tags: Series = result.tags_by_file(each)
-        table.append((each, selected_tags.head(input_n_result).tolist()))
+        selected_tags: Series = result.tags_by_file(each).head(input_n_result)
+        table.append((each, selected_tags.index.tolist()))
+
+        for each_tag, each_score in selected_tags.items():
+            if each_tag in tag_scores:
+                tag_scores[each_tag] += each_score
+            else:
+                tag_scores[each_tag] = each_score
+        # END loop tag
+    # END loop file
     comment_content += tabulate(table, headers, tablefmt="github")
+
+    # summary table
+    table = []
+    headers = ["Related Topics", "Score"]
+    for each_tag, score in tag_scores.items():
+        table.append((tag, score))
+    comment_content += ("\n\n" + tabulate(table, headers, tablefmt="github"))
 
     # give a feedback
     comment(input_repo_token, input_repo_name, int(input_issue_number), comment_content)
