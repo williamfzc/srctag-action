@@ -23,6 +23,7 @@ def main():
     input_issue_number = args[4]
     input_n_result = int(args[5])
     input_repo_name = os.getenv("GITHUB_REPOSITORY")
+    input_github_workspace = "/github/workspace"
 
     if not (input_before_sha and input_after_sha):
         logger.warning("It seems not a pull request. Bye~")
@@ -37,7 +38,7 @@ def main():
     logger.info(f"tags: {tags}")
 
     # diff
-    subprocess.check_call(["git", "config", "--global", "--add", "safe.directory", "/github/workspace"])
+    subprocess.check_call(["git", "config", "--global", "--add", "safe.directory", input_github_workspace])
     subprocess.check_call(["git", "status"])
     git_diff_command = ['git', 'diff', '--name-only', input_before_sha, input_after_sha]
     output = subprocess.check_output(git_diff_command).decode().strip()
@@ -46,6 +47,11 @@ def main():
 
     # main work
     result = tag(tags)
+
+    # save result for uploading
+    output_dot = os.path.join(input_github_workspace, "srctag.dot")
+    result.export_dot(output_dot)
+    subprocess.check_call(f"echo 'SRCTAG_GRAPH_FILE={output_dot}' >> '$GITHUB_ENV'", shell=True)
 
     # calc impacts
     comment_content = "# srctag report\n\n"
@@ -65,6 +71,7 @@ def main():
                 tag_scores[each_tag] = each_score
         # END loop tag
     # END loop file
+
     comment_content += tabulate(table, headers, tablefmt="github")
 
     # summary table
@@ -75,7 +82,8 @@ def main():
     comment_content += ("\n\n" + tabulate(table, headers, tablefmt="github"))
 
     # give a feedback
-    comment(input_repo_token, input_repo_name, int(input_issue_number), comment_content)
+    # temp removed
+    # comment(input_repo_token, input_repo_name, int(input_issue_number), comment_content)
 
 
 def tag(tags: typing.Iterable[str]):
