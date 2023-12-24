@@ -6,11 +6,9 @@ import typing
 
 from github import Github
 from loguru import logger
-from pandas import Series
 from srctag.collector import Collector
-from srctag.storage import Storage
-from srctag.tagger import Tagger
-from tabulate import tabulate
+from srctag.model import RuntimeContext
+from srctag.storage import MetadataConstant
 
 
 def main():
@@ -30,13 +28,6 @@ def main():
         return
     logger.info(f"diff between {input_before_sha} and {input_after_sha}")
 
-    tag_file = pathlib.Path(input_tag_file)
-    assert tag_file.is_file(), f"{tag_file.absolute()} is not a file"
-    with tag_file.open() as f:
-        lines = f.readlines()
-    tags = [each.strip() for each in lines]
-    logger.info(f"tags: {tags}")
-
     # diff
     subprocess.check_call(["git", "config", "--global", "--add", "safe.directory", input_github_workspace])
     subprocess.check_call(["git", "status"])
@@ -45,57 +36,36 @@ def main():
     diff_files = output.split('\n')
     logger.info(f"diff files: {diff_files}")
 
+    # optional tags
+    tag_file = pathlib.Path(input_tag_file)
+    tags = []
+    if tag_file.is_file():
+        with tag_file.open() as f:
+            lines = f.readlines()
+        tags = [each.strip() for each in lines]
+        logger.info(f"tags: {tags}")
+    else:
+        logger.info(f"{tag_file.absolute()} is not a file")
+
     # main work
-    result = tag(tags)
+    result = tag(tags, diff_files)
+    relation_graph = result.relations
 
-    # save result for uploading
-    output_dot = os.path.join(input_github_workspace, "srctag.dot")
-    result.export_dot(output_dot)
-    subprocess.check_call(f"echo 'SRCTAG_GRAPH_FILE={output_dot}' >> '$GITHUB_ENV'", shell=True)
-
-    # calc impacts
-    comment_content = "# srctag report\n\n"
-
-    # detail table
-    table = []
-    headers = ["File", "Related Topics"]
-    tag_scores = dict()
-    for each in diff_files:
-        selected_tags: Series = result.tags_by_file(each).head(input_n_result)
-        table.append((each, selected_tags.index.tolist()))
-
-        for each_tag, each_score in selected_tags.items():
-            if each_tag in tag_scores:
-                tag_scores[each_tag] += each_score
-            else:
-                tag_scores[each_tag] = each_score
-        # END loop tag
-    # END loop file
-
-    comment_content += tabulate(table, headers, tablefmt="github")
-
-    # summary table
-    table = []
-    headers = ["Related Topics", "Score"]
-    for each_tag, score in tag_scores.items():
-        table.append((tag, score))
-    comment_content += ("\n\n" + tabulate(table, headers, tablefmt="github"))
-
-    # give a feedback
-    # temp removed
-    # comment(input_repo_token, input_repo_name, int(input_issue_number), comment_content)
+    for each_file in diff_files:
+        related_nodes = relation_graph.neighbors(each_file)
+        related_issues = [node for node in related_nodes if
+                          relation_graph.nodes[node]["node_type"] == MetadataConstant.KEY_ISSUE_ID]
+        related_commits = [node for node in related_nodes if
+                           relation_graph.nodes[node]["node_type"] == MetadataConstant.KEY_COMMIT_SHA]
+        logger.info(f"file {each_file} related to issues {len(related_issues)}, commits {len(related_commits)}")
 
 
-def tag(tags: typing.Iterable[str]):
+def tag(_: typing.Iterable[str], diff_files: typing.Iterable[str]) -> RuntimeContext:
+    # todo: currently, we aim at shipping a MVP
     collector = Collector()
-    collector.config.repo_root = "."
+    collector.config.include_file_list = set(diff_files)
     ctx = collector.collect_metadata()
-    storage = Storage()
-    storage.embed_ctx(ctx)
-    tagger = Tagger()
-    tagger.config.tags = tags
-    tag_dict = tagger.tag(storage)
-    return tag_dict
+    return ctx
 
 
 def comment(token: str, repo_id: str, issue_number: int, content: str):
