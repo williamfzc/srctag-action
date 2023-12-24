@@ -52,12 +52,14 @@ def main():
     relation_graph = result.relations
 
     for each_file in diff_files:
-        related_nodes = relation_graph.neighbors(each_file)
+        related_nodes = list(relation_graph.neighbors(each_file))
         related_issues = [node for node in related_nodes if
                           relation_graph.nodes[node]["node_type"] == MetadataConstant.KEY_ISSUE_ID]
         related_commits = [node for node in related_nodes if
                            relation_graph.nodes[node]["node_type"] == MetadataConstant.KEY_COMMIT_SHA]
         logger.info(f"file {each_file} related to issues {len(related_issues)}, commits {len(related_commits)}")
+
+    # todo: render a mermaid graph?
 
 
 def tag(_: typing.Iterable[str], diff_files: typing.Iterable[str]) -> RuntimeContext:
