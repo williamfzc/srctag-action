@@ -51,6 +51,7 @@ def main():
     result = tag(tags, diff_files)
     relation_graph = result.relations
 
+    mermaid_code = "graph LR;\n"
     for each_file in diff_files:
         related_nodes = list(relation_graph.neighbors(each_file))
         related_issues = [node for node in related_nodes if
@@ -59,7 +60,25 @@ def main():
                            relation_graph.nodes[node]["node_type"] == MetadataConstant.KEY_COMMIT_SHA]
         logger.info(f"file {each_file} related to issues {len(related_issues)}, commits {len(related_commits)}")
 
-    # todo: render a mermaid graph?
+        for each_issue in related_issues:
+            mermaid_code += f'  style {each_file} fill:yellow,stroke:yellow;\n'
+            mermaid_code += f'  {each_issue} --> {each_file};\n'
+
+            # Find other files connected to the current issue and set yellow background
+            other_related_files = [node for node in relation_graph.neighbors(each_issue) if
+                                   node != each_file]
+            for other_file in other_related_files:
+                mermaid_code += f'  {each_issue} --> {other_file};\n'
+
+    logger.info(f"relations: {mermaid_code}")
+    comment_content = f"""
+# srctag report
+
+```mermaid
+{mermaid_code}
+```
+"""
+    comment(input_repo_token, input_repo_name, int(input_issue_number), comment_content)
 
 
 def tag(_: typing.Iterable[str], diff_files: typing.Iterable[str]) -> RuntimeContext:
