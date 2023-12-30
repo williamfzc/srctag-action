@@ -1,14 +1,26 @@
+import json
 import os
 import pathlib
 import subprocess
 import sys
 import typing
 
-from github import Github
+import networkx
+import requests
 from loguru import logger
+from pydantic import BaseModel
 from srctag.collector import Collector
 from srctag.model import RuntimeContext
-from srctag.storage import MetadataConstant
+
+URL_BACKEND_VERCEL = r"https://srctag-http-api.vercel.app/api/v1/conclusion/github"
+
+
+class ConclusionRequest(BaseModel):
+    repo_name: str
+    issue_number: int
+    # for making sure that this request came from GitHub
+    token: str
+    graph_data: str
 
 
 def main():
@@ -51,34 +63,17 @@ def main():
     result = tag(tags, diff_files)
     relation_graph = result.relations
 
-    mermaid_code = "graph LR;\n"
-    for each_file in diff_files:
-        related_nodes = list(relation_graph.neighbors(each_file))
-        related_issues = [node for node in related_nodes if
-                          relation_graph.nodes[node]["node_type"] == MetadataConstant.KEY_ISSUE_ID]
-        related_commits = [node for node in related_nodes if
-                           relation_graph.nodes[node]["node_type"] == MetadataConstant.KEY_COMMIT_SHA]
-        logger.info(f"file {each_file} related to issues {len(related_issues)}, commits {len(related_commits)}")
-
-        for each_issue in related_issues:
-            mermaid_code += f'  style {each_file} fill:yellow,stroke:yellow;\n'
-            mermaid_code += f'  {each_issue} --> {each_file};\n'
-
-            # Find other files connected to the current issue and set yellow background
-            other_related_files = [node for node in relation_graph.neighbors(each_issue) if
-                                   node != each_file]
-            for other_file in other_related_files:
-                mermaid_code += f'  {each_issue} --> {other_file};\n'
-
-    logger.info(f"relations: {mermaid_code}")
-    comment_content = f"""
-# srctag report
-
-```mermaid
-{mermaid_code}
-```
-"""
-    comment(input_repo_token, input_repo_name, int(input_issue_number), comment_content)
+    # upload
+    graph_data = networkx.node_link_data(relation_graph)
+    json_data = json.dumps(graph_data)
+    upload_obj = ConclusionRequest(
+        repo_name=input_repo_name,
+        issue_number=input_issue_number,
+        token=input_repo_token,
+        graph_data=json_data,
+    )
+    response = requests.post(URL_BACKEND_VERCEL, json=upload_obj.dict())
+    logger.info(f"backend response: {response}")
 
 
 def tag(_: typing.Iterable[str], diff_files: typing.Iterable[str]) -> RuntimeContext:
@@ -87,22 +82,6 @@ def tag(_: typing.Iterable[str], diff_files: typing.Iterable[str]) -> RuntimeCon
     collector.config.include_file_list = set(diff_files)
     ctx = collector.collect_metadata()
     return ctx
-
-
-def comment(token: str, repo_id: str, issue_number: int, content: str):
-    logger.info(f"send comment to {repo_id}, issue id: {issue_number}")
-    g = Github(token)
-    repo = g.get_repo(repo_id)
-    pr = repo.get_pull(issue_number)
-    comments = pr.get_issue_comments()
-    for each in comments:
-        if "srctag report" in each.body:
-            logger.info(f"found an existed comment: {each.id}, edit directly")
-            each.edit(content)
-            return
-
-    # no existed comment
-    pr.create_issue_comment(content)
 
 
 if __name__ == '__main__':
