@@ -64,6 +64,9 @@ def main():
     relation_graph = result.relations
 
     # upload
+    nodes_to_remove = [node for node, data in relation_graph.nodes(data=True) if data.get('node_type') == 'commit_sha']
+    relation_graph.remove_nodes_from(nodes_to_remove)
+
     graph_data = networkx.node_link_data(relation_graph)
     json_data = json.dumps(graph_data)
     upload_obj = ConclusionRequest(
