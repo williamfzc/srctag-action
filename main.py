@@ -21,6 +21,7 @@ class ConclusionRequest(BaseModel):
     # for making sure that this request came from GitHub
     token: str
     graph_data: str
+    diff_files: typing.List[str]
 
 
 def main():
@@ -74,6 +75,7 @@ def main():
         issue_number=input_issue_number,
         token=input_repo_token,
         graph_data=json_data,
+        diff_files=diff_files,
     )
     response = requests.post(URL_BACKEND_VERCEL, json=upload_obj.dict())
     logger.info(f"backend response: {response}")
