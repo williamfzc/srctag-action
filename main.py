@@ -37,6 +37,7 @@ def main():
     input_github_workspace = "/github/workspace"
 
     if not (input_before_sha and input_after_sha):
+        # ok
         logger.warning("It seems not a pull request. Bye~")
         return
     logger.info(f"diff between {input_before_sha} and {input_after_sha}")
