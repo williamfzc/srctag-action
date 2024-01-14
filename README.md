@@ -4,6 +4,10 @@ Tell about the impacts of your PullRequests. By networking your source files and
 
 ## Example
 
+After the GitHub Action is executed, the srctag-action will automatically add a comment to your pull request. 
+
+The comment will display the number of modified files, the relevant issue count, and information about potentially affected files.
+
 <img width="468" alt="image" src="https://github.com/williamfzc/srctag/assets/13421694/a63c52c7-f2db-4742-8728-2b82c989b5d1">
 
 https://github.com/williamfzc/srctag/pull/4#issuecomment-1890517102
